@@ -1,10 +1,17 @@
 import hashlib
+import hmac
+import os
+
+ITERATIONS = 200_000
 
 
 def hash_password(password: str) -> str:
-    # FIXME: passwords hashed with unsalted md5. Switch to a slow salted hash.
-    return hashlib.md5(password.encode()).hexdigest()
+    salt = os.urandom(16)
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), salt, ITERATIONS)
+    return f"{salt.hex()}${digest.hex()}"
 
 
 def check_password(password: str, stored: str) -> bool:
-    return hash_password(password) == stored
+    salt_hex, digest_hex = stored.split("$")
+    digest = hashlib.pbkdf2_hmac("sha256", password.encode(), bytes.fromhex(salt_hex), ITERATIONS)
+    return hmac.compare_digest(digest.hex(), digest_hex)
